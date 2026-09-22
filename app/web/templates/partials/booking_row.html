@@ -1,0 +1,16 @@
+<tr id="booking-{{ b.id }}" class="{{ 'cancelled' if b.status != active }} {{ 'past' if b.end_at <= now }}">
+  <td>{{ human_range(b.start_at, b.end_at) }}</td>
+  <td>{{ b.room.name }}</td>
+  <td>{{ b.title }}{% if b.source.value == "natural_language" %} <span class="tag" title="Создано из фразы">фраза</span>{% endif %}</td>
+  <td class="actions"><div>
+    {% if b.status != active %}
+      <span class="muted">{{ "Отменено" if not just_cancelled else "Отменено ✓" }}</span>
+    {% elif b.end_at <= now %}
+      <span class="muted">Прошла</span>
+    {% else %}
+      <a href="/api/v1/bookings/{{ b.id }}/calendar.ics" title="Скачать .ics для Google/Outlook">В календарь</a>
+      <button class="link danger" hx-post="/bookings/{{ b.id }}/cancel" hx-target="#booking-{{ b.id }}" hx-swap="outerHTML"
+              hx-confirm="Отменить бронь «{{ b.title }}»?">Отменить</button>
+    {% endif %}
+  </div></td>
+</tr>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Мои брони{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <h1>Мои брони</h1>
+  <div class="views">
+    <a class="btn {{ 'current' if not past }}" href="/my">Предстоящие</a>
+    <a class="btn {{ 'current' if past }}" href="/my?past=true">Вся история</a>
+  </div>
+</div>
+{% if not bookings %}
+  <p class="muted">{% if past %}Броней ещё не было.{% else %}Предстоящих броней нет.{% endif %} <a href="/bookings/new">Забронировать</a></p>
+{% else %}
+<table class="list">
+  <thead><tr><th>Когда</th><th>Комната</th><th>Тема</th><th></th></tr></thead>
+  <tbody>
+    {% for b in bookings %}{% include "partials/booking_row.html" %}{% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,94 @@
+{#
+  Панель брони: блок «фразой» + обычная форма. Оба пути заканчиваются одной и той же формой,
+  которую пользователь подтверждает сам: LLM только заполняет поля.
+#}
+<div id="booking-panel" class="booking-panel">
+
+  <section class="card nl">
+    <h3>Фразой</h3>
+    {% if llm_enabled %}
+    <form hx-post="/bookings/parse" hx-target="#booking-panel" hx-swap="outerHTML" hx-indicator="#nl-spinner" hx-disabled-elt="find button">
+      <textarea name="text" rows="2" maxlength="{{ settings.nl_max_text_length }}" required
+        placeholder="Например: большая переговорка завтра с 14:00 на полтора часа, обсуждение релиза">{{ nl_text }}</textarea>
+      <div class="row">
+        <button class="secondary">Заполнить форму</button>
+        <span id="nl-spinner" class="htmx-indicator muted">Разбираю фразу…</span>
+      </div>
+    </form>
+    {% else %}
+    <p class="muted">Разбор фраз выключен: не задан <code>DEEPSEEK_API_KEY</code>. Обычная форма работает.</p>
+    {% endif %}
+
+    {% if nl_error %}<div class="flash warning">{{ nl_error }}</div>{% endif %}
+    {% if draft %}
+      <div class="draft-notes">
+        {% if draft.ready %}<div class="flash success">Проверьте поля и нажмите «Забронировать».</div>{% endif %}
+        {% for a in draft.assumptions %}<div class="note info">{{ a }}</div>{% endfor %}
+        {% for p in draft.problems %}<div class="note warning">{{ p }}</div>{% endfor %}
+        {% if "start_time" in draft.missing %}<div class="note warning">Не понял, во сколько — укажите время.</div>{% endif %}
+        {% if "room" in draft.missing %}<div class="note warning">Какую комнату бронируем? Выберите в форме.</div>{% endif %}
+        {% if draft.conflict %}<div class="note error">Комната уже занята в это время.</div>{% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h3>Параметры брони</h3>
+    {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+
+    {% if conflict and conflict.conflicts %}
+      <ul class="conflicts">
+        {% for b in conflict.conflicts %}
+        <li>Занято: {{ human_range(b.start_at, b.end_at) }} — «{{ b.title }}» ({{ b.user.full_name }})</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+      {% if alt_slots %}
+      <div class="alts">
+        <span class="muted">Свободно в этой комнате:</span>
+        {% for s in alt_slots %}
+          {% set ls = to_local(s.start_at) %}{% set le = to_local(s.end_at) %}
+          <a class="chip" href="/bookings/new?room_id={{ form.room_id }}&date={{ ls.date() }}&start={{ ls.strftime('%H:%M') }}&end={{ le.strftime('%H:%M') }}&title={{ form.title | urlencode }}">{{ ls.strftime('%H:%M') }}–{{ le.strftime('%H:%M') }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if alt_rooms %}
+      <div class="alts">
+        <span class="muted">Свободные комнаты на это время:</span>
+        {% for r in alt_rooms %}
+          <a class="chip" href="/bookings/new?room_id={{ r.id }}&date={{ form.date }}&start={{ form.start }}&end={{ form.end }}&title={{ form.title | urlencode }}">{{ r.name }} · {{ r.capacity }} чел.</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    <form class="booking-form" hx-post="/bookings" hx-target="#booking-panel" hx-swap="outerHTML" hx-disabled-elt="find button">
+      <input type="hidden" name="source" value="{{ form.source }}">
+      <label>Комната
+        <select name="room_id" required>
+          <option value="" disabled {{ 'selected' if not form.room_id }}>Выберите…</option>
+          {% for r in rooms %}
+          <option value="{{ r.id }}" {{ 'selected' if form.room_id == r.id }}>{{ r.name }} · {{ r.capacity }} чел.</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="grid3">
+        <label>Дата <input type="date" name="date" value="{{ form.date }}" required></label>
+        <label>С
+          <select name="start" required>
+            <option value="" disabled {{ 'selected' if not form.start }}>—</option>
+            {% for t in start_options %}<option {{ 'selected' if form.start == t }}>{{ t }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>До
+          <select name="end" required>
+            <option value="" disabled {{ 'selected' if not form.end }}>—</option>
+            {% for t in end_options %}<option {{ 'selected' if form.end == t }}>{{ t }}</option>{% endfor %}
+          </select>
+        </label>
+      </div>
+      <label>Тема встречи <input name="title" value="{{ form.title }}" maxlength="200" required placeholder="Планирование спринта"></label>
+      <button class="primary">Забронировать</button>
+    </form>
+  </section>
+</div>

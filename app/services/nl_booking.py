@@ -32,6 +32,11 @@ DEFAULT_TITLE = "Встреча"
 nl_limiter = RateLimiter(limit=get_settings().nl_rate_limit_per_minute, window_seconds=60)
 
 
+def check_rate_limit(user_id: int) -> None:
+    """Каждый разбор — платный запрос к LLM, поэтому ограничиваем частоту на пользователя."""
+    nl_limiter.check(f"user:{user_id}", "Слишком много запросов на разбор фраз, подождите минуту")
+
+
 @dataclass
 class Draft:
     room: Room | None = None

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Комнаты{% endblock %}
+{% block content %}
+<h1>Комнаты</h1>
+<p class="muted">Синонимы через запятую — так комнату называют в разговоре («большая», «аквариум»). Они помогают разбирать фразы.
+Комнаты не удаляются, а отключаются: история броней сохраняется.</p>
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+<table class="list rooms">
+  <thead><tr><th>Название</th><th>Мест</th><th>Где</th><th>Синонимы</th><th>Активна</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rooms %}
+    <tr class="{{ 'cancelled' if not r.is_active }}">
+      <td colspan="6">
+        <form method="post" action="/admin/rooms/{{ r.id }}" class="room-row">
+          <input name="name" value="{{ r.name }}" required maxlength="80">
+          <input name="capacity" type="number" min="1" max="500" value="{{ r.capacity }}" required>
+          <input name="location" value="{{ r.location or '' }}" maxlength="120">
+          <input name="aliases" value="{{ r.aliases | join(', ') }}">
+          <input type="checkbox" name="is_active" value="true" {{ 'checked' if r.is_active }}>
+          <button class="secondary">Сохранить</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+    <tr class="new">
+      <td colspan="6">
+        <form method="post" action="/admin/rooms" class="room-row">
+          <input name="name" placeholder="Новая комната" required maxlength="80">
+          <input name="capacity" type="number" min="1" max="500" placeholder="Мест" required>
+          <input name="location" placeholder="Этаж, ориентир" maxlength="120">
+          <input name="aliases" placeholder="синоним, ещё синоним">
+          <span></span>
+          <button class="primary">Добавить</button>
+        </form>
+      </td>
+    </tr>
+  </tbody>
+</table>
+{% endblock %}

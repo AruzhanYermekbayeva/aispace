@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Регистрация{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>Регистрация</h1>
+  {% if domains %}<p class="muted">Только для корпоративной почты: {% for d in domains %}<b>@{{ d }}</b>{{ ", " if not loop.last }}{% endfor %}</p>{% endif %}
+  {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+  <form method="post" action="/register">
+    <label>Имя и фамилия <input name="full_name" value="{{ full_name or '' }}" required maxlength="120" autocomplete="name"></label>
+    <label>Email <input type="email" name="email" value="{{ email or '' }}" required autocomplete="username"></label>
+    <label>Пароль <input type="password" name="password" required minlength="8" maxlength="128" autocomplete="new-password">
+      <small class="muted">Не короче 8 символов</small></label>
+    <button class="primary wide">Зарегистрироваться</button>
+  </form>
+  <p class="muted">Уже есть аккаунт? <a href="/login">Войти</a></p>
+</div>
+{% endblock %}

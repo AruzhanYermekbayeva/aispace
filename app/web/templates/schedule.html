@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Расписание{% endblock %}
+{% block content %}
+{% if created %}
+<div class="flash success">
+  Забронировано: <b>{{ created.room.name }}</b>, {{ human_range(created.start_at, created.end_at) }} — «{{ created.title }}».
+  <a href="/api/v1/bookings/{{ created.id }}/calendar.ics">Добавить в календарь (.ics)</a>
+</div>
+{% endif %}
+<div id="timeline">{% include "partials/timeline.html" %}</div>
+{% endblock %}

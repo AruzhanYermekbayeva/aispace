@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AiSpace{% endblock %} · AiSpace</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f5bea'/%3E%3Ctext x='16' y='22' font-size='17' font-family='sans-serif' font-weight='700' text-anchor='middle' fill='white'%3EA%3C/text%3E%3C/svg%3E">
+  {# 4xx-ответы с формами тоже вставляем в страницу: 409/422 несут разметку с ошибкой #}
+  <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"...","swap":true}]}'>
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/schedule">Ai<span>Space</span></a>
+    {% if user %}
+    <nav>
+      <a href="/schedule" class="{{ 'active' if request.url.path == '/schedule' }}">Расписание</a>
+      <a href="/bookings/new" class="{{ 'active' if request.url.path == '/bookings/new' }}">Забронировать</a>
+      <a href="/my" class="{{ 'active' if request.url.path == '/my' }}">Мои брони</a>
+      {% if user.is_admin %}<a href="/admin/rooms" class="{{ 'active' if request.url.path.startswith('/admin') }}">Комнаты</a>{% endif %}
+    </nav>
+    <div class="who">
+      <span>{{ user.full_name }}</span>
+      <form method="post" action="/logout"><button class="link">Выйти</button></form>
+    </div>
+    {% endif %}
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from app.deps import DB, CurrentUser
 from app.llm.client import LLMClient, get_llm_client
 from app.schemas import DraftOut, ParseIn, RoomSlotOut, SlotOut
-from app.services.nl_booking import Draft, draft_from_text, nl_limiter
+from app.services.nl_booking import Draft, check_rate_limit, draft_from_text
 
 router = APIRouter(prefix="/bookings", tags=["natural language"])
 
@@ -49,5 +49,5 @@ def draft_out(d: Draft) -> DraftOut:
 async def parse_phrase(payload: ParseIn, session: DB, user: CurrentUser, llm: LLM) -> DraftOut:
     """Разобрать фразу в черновик брони. **Ничего не создаёт**: чтобы забронировать,
     отправьте поля черновика в `POST /bookings`."""
-    nl_limiter.check(f"user:{user.id}", "Слишком много запросов на разбор фраз, подождите минуту")
+    check_rate_limit(user.id)
     return draft_out(await draft_from_text(session, llm, payload.text))

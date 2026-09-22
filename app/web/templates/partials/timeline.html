@@ -1,0 +1,55 @@
+{% set base = "/schedule?view=" ~ view ~ ("&room_id=" ~ week_room.id if week_room else "") %}
+<div class="toolbar">
+  <div class="nav-days">
+    <a class="btn" hx-get="{{ base }}&date={{ prev_day }}" hx-target="#timeline" hx-push-url="true" href="{{ base }}&date={{ prev_day }}">←</a>
+    <a class="btn {{ 'current' if selected == today }}" hx-get="{{ base }}&date={{ today }}" hx-target="#timeline" hx-push-url="true" href="{{ base }}&date={{ today }}">Сегодня</a>
+    <a class="btn" hx-get="{{ base }}&date={{ next_day }}" hx-target="#timeline" hx-push-url="true" href="{{ base }}&date={{ next_day }}">→</a>
+    <input type="date" name="date" value="{{ selected }}" hx-get="{{ base }}" hx-target="#timeline" hx-push-url="true" hx-trigger="change">
+  </div>
+  <h2>{{ heading }}</h2>
+  <div class="views">
+    <a class="btn {{ 'current' if view == 'day' }}" href="/schedule?date={{ selected }}">День: все комнаты</a>
+    {% if rooms %}
+    <form class="inline" action="/schedule">
+      <input type="hidden" name="view" value="week"><input type="hidden" name="date" value="{{ selected }}">
+      <select name="room_id" onchange="this.form.submit()" class="{{ 'current' if view == 'week' }}">
+        {% if view != "week" %}<option value="">Неделя: выбрать комнату…</option>{% endif %}
+        {% for r in rooms %}<option value="{{ r.id }}" {{ 'selected' if week_room and week_room.id == r.id }}>Неделя: {{ r.name }}</option>{% endfor %}
+      </select>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if not rows %}
+  <p class="muted">Комнат пока нет.{% if user.is_admin %} <a href="/admin/rooms">Добавить комнату</a>{% endif %}</p>
+{% else %}
+<div class="timeline">
+  <div class="tl-row tl-head">
+    <div class="tl-label"></div>
+    <div class="tl-track">{% for left, label in marks %}<span class="tl-mark" style="left:{{ left }}%">{{ label }}</span>{% endfor %}</div>
+  </div>
+  {% for row in rows %}
+  <div class="tl-row {{ 'today' if row.is_today and view == 'week' }}">
+    <div class="tl-label">
+      {% if row.href %}<a href="{{ row.href }}">{{ row.label }}</a>{% else %}{{ row.label }}{% endif %}
+      {% if row.sublabel %}<small>{{ row.sublabel }}</small>{% endif %}
+    </div>
+    <div class="tl-track">
+      {% for c in row.cells %}
+        {% if c.href %}<a class="tl-cell" href="{{ c.href }}" style="left:{{ c.left }}%;width:{{ c.width }}%" title="Забронировать с {{ c.label }}"></a>
+        {% else %}<span class="tl-cell past" style="left:{{ c.left }}%;width:{{ c.width }}%"></span>{% endif %}
+      {% endfor %}
+      {% for b in row.blocks %}
+        <div class="tl-block {{ 'mine' if b.mine }} {{ 'past' if b.past }}" style="left:{{ b.left }}%;width:{{ b.width }}%"
+             title="{{ b.time_label }} · {{ b.title }} · {{ b.owner }}">
+          <b>{{ b.title }}</b><small>{{ b.time_label }} · {{ b.owner }}</small>
+        </div>
+      {% endfor %}
+      {% if row.now_left is not none %}<div class="tl-now" style="left:{{ row.now_left }}%"></div>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<p class="muted legend"><span class="sw free"></span> свободно — нажмите, чтобы забронировать &nbsp; <span class="sw busy"></span> занято &nbsp; <span class="sw mine"></span> ваша бронь</p>
+{% endif %}
