@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aispace_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 2s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python - <<'EOF' > requirements-ci.txt
+          import tomllib
+          data = tomllib.load(open("pyproject.toml", "rb"))
+          print("\n".join(data["project"]["dependencies"] + data["dependency-groups"]["dev"]))
+          EOF
+          pip install -r requirements-ci.txt
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Tests
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/aispace_test
+        run: pytest -q
+
+  # Ровно то, что сделает проверяющий: чистая машина, только Docker, одна команда.
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker compose up (no .env)
+        run: docker compose up -d --build --wait --wait-timeout 180
+      - name: Smoke checks
+        run: |
+          curl -fsS http://localhost:8000/api/v1/health
+          curl -fsS -o /dev/null http://localhost:8000/login
+          curl -fsS -X POST http://localhost:8000/api/v1/auth/login \
+            -H 'content-type: application/json' \
+            -d '{"email":"admin@aispace.local","password":"admin12345"}' | grep -q token
+      - name: Restart is idempotent
+        run: |
+          docker compose restart app
+          docker compose up -d --wait --wait-timeout 120
+          curl -fsS http://localhost:8000/api/v1/health
+      - name: Tests inside Docker
+        run: docker compose --profile test run --rm tests
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
