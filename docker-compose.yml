@@ -1,0 +1,64 @@
+name: aispace
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aispace}
+      POSTGRES_USER: ${POSTGRES_USER:-aispace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aispace}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Порт наружу не пробрасываем: база доступна только приложению внутри сети compose.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      target: runtime
+    env_file:
+      - path: .env
+        required: false  # без .env всё тоже запустится, просто без разбора фраз
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aispace}:${POSTGRES_PASSWORD:-aispace}@db:5432/${POSTGRES_DB:-aispace}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- тесты: docker compose --profile test run --rm tests ---
+  test-db:
+    profiles: [test]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: aispace_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aispace_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  tests:
+    profiles: [test]
+    build:
+      context: .
+      target: test
+    environment:
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@test-db:5432/aispace_test
+    depends_on:
+      test-db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
