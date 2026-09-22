@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import logging
-import secrets
 from datetime import time
 from functools import lru_cache
+from typing import Annotated
 from zoneinfo import ZoneInfo
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-log = logging.getLogger(__name__)
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -21,12 +18,13 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://aispace:aispace@db:5432/aispace"
 
     # --- Безопасность ---
-    # Если не задан — генерируется при старте (сессии не переживут рестарт, в лог пишется warning).
-    secret_key: str = ""
     session_ttl_hours: int = 24 * 7
     cookie_secure: bool = False  # включить за HTTPS-прокси
-    # Регистрация разрешена только с этих доменов. Пусто — любой домен (удобно для локальной разработки).
-    allowed_email_domains: list[str] = Field(default_factory=lambda: ["aispace.local"])
+    scrypt_n: int = 2**17  # стоимость хеширования паролей; в тестах понижается
+    # Регистрация только с этих доменов (через запятую). Пусто — любой домен.
+    allowed_email_domains: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["aispace.local"]
+    )
 
     # --- Первый администратор (создаётся при старте, если такого email ещё нет) ---
     admin_email: str = "admin@aispace.local"
@@ -70,8 +68,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    settings = Settings()
-    if not settings.secret_key:
-        settings.secret_key = secrets.token_urlsafe(32)
-        log.warning("SECRET_KEY не задан — сгенерирован случайный, сессии сбросятся при рестарте")
-    return settings
+    return Settings()
