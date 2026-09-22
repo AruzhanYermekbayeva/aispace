@@ -1,0 +1,53 @@
+[project]
+name = "aispace"
+version = "0.1.0"
+description = "AiSpace — сервис бронирования переговорных комнат"
+readme = "README.md"
+requires-python = ">=3.11"
+# Версии зафиксированы точно: это те же версии, на которых прогонялись тесты.
+dependencies = [
+    "fastapi==0.118.0",
+    "starlette==0.48.0",
+    "uvicorn[standard]==0.46.0",
+    "sqlalchemy[asyncio]==2.0.43",
+    "psycopg[binary]==3.2.10",
+    "alembic==1.16.5",
+    "pydantic==2.13.3",
+    "pydantic-settings==2.14.0",
+    "httpx==0.28.1",
+    "jinja2==3.1.6",
+    "python-multipart==0.0.20",
+    "tzdata==2025.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.4.2",
+    "pytest-asyncio==1.2.0",
+    "ruff==0.15.11",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["web/templates/**/*", "web/static/**/*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "ASYNC", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003", "B008"]
