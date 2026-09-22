@@ -1,0 +1,5 @@
+# Всегда LF: иначе на Windows (core.autocrlf=true) entrypoint.sh получит CRLF
+# и контейнер упадёт с "/bin/sh^M: not found".
+* text=auto eol=lf
+*.png binary
+*.js -diff
