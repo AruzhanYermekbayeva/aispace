@@ -64,14 +64,14 @@ async def register_user(
     user = User(
         email=email, full_name=full_name, password_hash=hash_password(password), is_admin=is_admin
     )
-    session.add(user)
     try:
-        await session.commit()
-    except IntegrityError as exc:  # гонка двух одновременных регистраций
-        await session.rollback()
+        async with session.begin_nested():  # гонка двух одновременных регистраций
+            session.add(user)
+    except IntegrityError as exc:
         raise Conflict(
             "Пользователь с таким email уже зарегистрирован", details={"field": "email"}
         ) from exc
+    await session.commit()
     return user
 
 

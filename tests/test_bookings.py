@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from itertools import pairwise
 from typing import Any
 
 import httpx
@@ -55,6 +56,9 @@ async def test_overlap_rejected_with_alternatives(
     assert {"start_at": iso(1, "15:00"), "end_at": iso(1, "16:00")} in slots
     for s in slots:
         assert not (s["start_at"] < iso(1, "15:00") and s["end_at"] > iso(1, "14:00"))
+    # варианты различаются, а не сдвинуты на 15 минут друг от друга
+    for x, y in pairwise(slots):
+        assert x["end_at"] <= y["start_at"]
     # другие свободные комнаты на это же время
     names = [x["room_name"] for x in err["details"]["alternative_rooms"]]
     assert set(names) == {"Аквариум", "Малая"}

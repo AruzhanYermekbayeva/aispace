@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,8 +43,9 @@ async def create_room(session: AsyncSession, data: RoomIn) -> Room:
         description=(data.description or "").strip() or None,
         aliases=_clean_aliases(data.aliases),
     )
-    session.add(room)
-    await _commit_unique(session)
+    async with _unique_name(session):
+        session.add(room)
+    await session.commit()
     return room
 
 
@@ -52,16 +56,20 @@ async def update_room(session: AsyncSession, room_id: int, data: RoomPatch) -> R
     changes = data.model_dump(exclude_unset=True)
     if "aliases" in changes and changes["aliases"] is not None:
         changes["aliases"] = _clean_aliases(changes["aliases"])
-    for field, value in changes.items():
-        if value is not None or field in {"location", "description"}:
-            setattr(room, field, value.strip() if isinstance(value, str) else value)
-    await _commit_unique(session)
+    async with _unique_name(session):
+        for field, value in changes.items():
+            if value is not None or field in {"location", "description"}:
+                setattr(room, field, value.strip() if isinstance(value, str) else value)
+    await session.commit()
     return room
 
 
-async def _commit_unique(session: AsyncSession) -> None:
+@asynccontextmanager
+async def _unique_name(session: AsyncSession) -> AsyncIterator[None]:
+    """Изменения внутри SAVEPOINT: при нарушении уникальности откатывается только он,
+    а остальные объекты сессии (например, текущий пользователь) остаются загруженными."""
     try:
-        await session.commit()
+        async with session.begin_nested():
+            yield
     except IntegrityError as exc:
-        await session.rollback()
         raise Conflict("Комната с таким названием уже есть", details={"field": "name"}) from exc

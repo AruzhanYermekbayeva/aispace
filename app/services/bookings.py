@@ -161,8 +161,15 @@ async def free_slots_same_day(
         if not any(bs < t + duration and be > t for bs, be in busy):
             candidates.append(t)
         t += step
-    candidates.sort(key=lambda c: abs(c - start))
-    return [Slot(c, c + duration) for c in sorted(candidates[:MAX_ALTERNATIVES])]
+    # Жадно берём ближайшие к желаемому времени, но не пересекающиеся между собой:
+    # «15:00–16:30» и «15:15–16:45» — по сути один вариант, пользователю нужен выбор.
+    picked: list[datetime] = []
+    for c in sorted(candidates, key=lambda c: abs(c - start)):
+        if all(c + duration <= p or c >= p + duration for p in picked):
+            picked.append(c)
+            if len(picked) == MAX_ALTERNATIVES:
+                break
+    return [Slot(c, c + duration) for c in sorted(picked)]
 
 
 async def alternatives_for(
@@ -234,18 +241,17 @@ async def create_booking(
     booking = Booking(
         room_id=room.id, user_id=user.id, title=title, start_at=start, end_at=end, source=source
     )
-    session.add(booking)
     try:
-        await session.commit()
+        # SAVEPOINT: при ошибке откатывается только вставка, а room/user в сессии
+        # остаются загруженными (полный rollback «протух» бы все объекты сессии).
+        async with session.begin_nested():
+            session.add(booking)
     except IntegrityError as exc:
-        await session.rollback()
         if getattr(exc.orig, "sqlstate", None) == EXCLUSION_VIOLATION:
             # Проиграли гонку: кто-то занял слот между проверкой и вставкой.
-            # rollback() «протухает» все ORM-объекты сессии — перечитываем комнату явно,
-            # иначе обращение к room.name вызовет ленивую загрузку вне async-контекста.
-            await session.refresh(room)
             raise await _conflict_error(session, room, start, end, now) from exc
         raise
+    await session.commit()
     await session.refresh(booking)
     return booking
 
