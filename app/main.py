@@ -20,6 +20,7 @@ log = logging.getLogger("aispace")
 
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
+
 class OriginCheckMiddleware(BaseHTTPMiddleware):
     """CSRF-защита для cookie-сессий: изменяющий запрос из браузера должен прийти с нашего
     же origin. Вместе с SameSite=Lax этого достаточно без CSRF-токенов в каждой форме.
