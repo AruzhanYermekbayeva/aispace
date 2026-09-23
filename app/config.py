@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     allowed_email_domains: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["aispace.local"]
     )
-
+    #depending on the depth, its either a list of allowed domains or an empty list for any domain.
     # --- Первый администратор (создаётся при старте, если такого email ещё нет) ---
     admin_email: str = "admin@aispace.local"
     admin_password: str = "admin12345"

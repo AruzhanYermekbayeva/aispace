@@ -2,15 +2,14 @@
 
 Сознательное упрощение: работает в пределах одного процесса. Для одного инстанса
 внутреннего сервиса этого достаточно; при горизонтальном масштабировании — Redis.
-"""
 
+""" 
 from __future__ import annotations
 
 import time
 from collections import defaultdict, deque
 
 from app.errors import RateLimited
-
 
 class RateLimiter:
     def __init__(self, limit: int, window_seconds: float = 60.0) -> None:

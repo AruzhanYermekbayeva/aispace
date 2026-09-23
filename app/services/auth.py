@@ -19,7 +19,6 @@ from app.security import (
 )
 from app.timeutils import now_utc
 
-# Намеренно простая проверка формы адреса: реальную проверку делает домен из allowlist.
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 MIN_PASSWORD, MAX_PASSWORD = 8, 128
 
