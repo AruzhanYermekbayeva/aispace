@@ -43,7 +43,7 @@ class Alternatives:
 
 
 def validate_times(
-    start_at: datetime, end_at: datetime, *, now: datetime, user: User
+    start_at: datetime, end_at: datetime, *, now: datetime
 ) -> tuple[datetime, datetime]:
     """Правила времени брони. Чистая функция — легко тестируется без БД."""
     s = get_settings()
